@@ -1,0 +1,7 @@
+neighborhood_id,neighborhood_name,distance_to_center_km,school_score,transit_score,safety_score
+N01,Riverside,4.2,8,7,8
+N02,Midtown,2.7,9,9,7
+N03,Central,1.0,8,10,7
+N04,Lakeside,7.5,9,6,9
+N05,Green Park,6.1,7,7,9
+N06,Old Town,5.4,6,6,7

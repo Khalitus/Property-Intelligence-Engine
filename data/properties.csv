@@ -1,0 +1,13 @@
+property_id,neighborhood_id,property_type,bedrooms,bathrooms,area_sqm,year_built,parking_spaces,floor,furnished,amenities,description
+P0001,N06,Apartment,3,1,73,1997,1,4,1,balcony|rooftop|storage|parking|elevator,"Renovated 3-bedroom apartment in Old Town, close to transport."
+P0002,N02,House,4,4,199,1998,1,2,0,parking|gym|storage|elevator|security,Modern 4-bedroom house in Midtown with gym and security.
+P0003,N02,House,2,3,268,1998,1,2,0,rooftop|security|gym|parking,Quiet 2-bedroom house in Midtown with rooftop.
+P0004,N04,Apartment,2,3,86,1994,0,8,0,elevator|balcony|parking|rooftop|gym,Bright apartment in Lakeside.
+P0005,N01,House,3,2,180,2012,2,1,1,parking|garden,Family home in Riverside with garden.
+P0006,N03,Apartment,1,1,65,2020,0,6,1,elevator|security,Compact apartment near Central transit.
+P0007,N05,House,5,4,310,2018,2,2,1,parking|garden|security,Spacious home in Green Park.
+P0008,N04,House,3,3,220,2010,1,1,0,parking|rooftop,House close to the Lakeside school.
+P0009,N06,Apartment,2,1,90,2005,0,3,0,balcony,Apartment in Old Town with a balcony.
+P0010,N01,House,4,3,230,2015,2,2,1,parking|garden|storage,Riverside family house with two parking spaces.
+P0011,N03,Apartment,3,2,125,2014,1,5,1,parking|elevator,Central apartment with easy transport.
+P0012,N05,House,2,2,155,2001,1,1,0,parking|garden,Cozy property in Green Park.
