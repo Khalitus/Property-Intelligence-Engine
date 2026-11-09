@@ -1,7 +1,13 @@
 neighborhood_id,neighborhood_name,distance_to_center_km,school_score,transit_score,safety_score
-N01,Riverside,4.2,8,7,8
-N02,Midtown,2.7,9,9,7
-N03,Central,1.0,8,10,7
-N04,Lakeside,7.5,9,6,9
-N05,Green Park,6.1,7,7,9
-N06,Old Town,5.4,6,6,7
+N01,Riverside,4.2,8.0,7.0,8.0
+N02,Midtown,2.7,9.0,9.0,7.0
+N03,Central,1.0,8.0,10.0,7.0
+N04,Lakeside,7.5,9.0,6.0,9.0
+N05,Green Park,6.1,7.0,7.0,9.0
+N06,Old Town,5.4,6.0,6.0,7.0
+N07,Harbor Point,8.4,7.6,6.9,8.1
+N08,Westfield,10.8,7.8,6.2,8.3
+N09,University Quarter,3.6,9.4,8.8,7.6
+N10,East Gardens,9.3,8.5,6.4,8.7
+N11,Hillcrest,12.8,8.7,5.3,9.3
+N12,South Market,5.9,7.2,8.6,6.8
