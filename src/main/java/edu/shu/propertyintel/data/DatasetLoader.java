@@ -46,7 +46,11 @@ public final class DatasetLoader {
     }
 
     private static double number(CsvReader.CsvRow row, String column) {
-        return Double.parseDouble(row.get(column));
+        double value = Double.parseDouble(row.get(column));
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Non-finite numeric value in column: " + column);
+        }
+        return value;
     }
 
     private static int integer(CsvReader.CsvRow row, String column) {

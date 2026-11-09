@@ -47,6 +47,14 @@ class DatasetLoaderTest {
     }
 
     @Test
+    void rejectsNonFinitePricesFromCsv() throws IOException {
+        writeDataset("N01");
+        Files.writeString(tempDir.resolve("sales.csv"),
+                "sale_id,property_id,sale_date,sale_price\nS01,P0001,2025-01-01,NaN\n");
+        assertThrows(IllegalArgumentException.class, () -> new DatasetLoader().load(tempDir));
+    }
+
+    @Test
     void rejectsUnknownNeighborhoodReferences() throws IOException {
         writeDataset("INVALID");
         assertThrows(IllegalArgumentException.class, () -> new DatasetLoader().load(tempDir));

@@ -20,6 +20,13 @@ public final class PropertyStore {
     private int saleCount;
 
     public void addNeighborhood(Neighborhood neighborhood) {
+        if (neighborhood == null || !Double.isFinite(neighborhood.distanceToCenterKm())
+                || neighborhood.distanceToCenterKm() < 0
+                || !Double.isFinite(neighborhood.schoolScore())
+                || !Double.isFinite(neighborhood.transitScore())
+                || !Double.isFinite(neighborhood.safetyScore())) {
+            throw new IllegalArgumentException("Invalid neighborhood data");
+        }
         if (neighborhoodsById.containsKey(neighborhood.id())) {
             throw new IllegalArgumentException("Duplicate neighborhood ID: " + neighborhood.id());
         }
@@ -27,6 +34,11 @@ public final class PropertyStore {
     }
 
     public void addProperty(Property property) {
+        if (property == null || property.bedrooms() < 0 || property.bathrooms() < 0
+                || property.parkingSpaces() < 0 || !Double.isFinite(property.areaSqm())
+                || property.areaSqm() <= 0) {
+            throw new IllegalArgumentException("Invalid property measurements");
+        }
         if (!neighborhoodsById.containsKey(property.neighborhoodId())) {
             throw new IllegalArgumentException("Unknown neighborhood: " + property.neighborhoodId());
         }
@@ -38,6 +50,10 @@ public final class PropertyStore {
     }
 
     public void addSale(Sale sale) {
+        if (sale == null || sale.date() == null || !Double.isFinite(sale.price())
+                || sale.price() <= 0) {
+            throw new IllegalArgumentException("Sale price must be a finite positive amount and date is required");
+        }
         if (!propertiesById.containsKey(sale.propertyId())) {
             throw new IllegalArgumentException("Unknown property for sale: " + sale.propertyId());
         }

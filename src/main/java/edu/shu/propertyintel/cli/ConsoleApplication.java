@@ -10,6 +10,9 @@ import edu.shu.propertyintel.service.RecommendationService;
 import edu.shu.propertyintel.service.PropertyRecommendation;
 import edu.shu.propertyintel.service.ComparableValuationService;
 import edu.shu.propertyintel.service.ValuationResult;
+import edu.shu.propertyintel.service.AlgorithmComparisonService;
+import edu.shu.propertyintel.service.AlgorithmComparisonReport;
+import edu.shu.propertyintel.service.BenchmarkResult;
 import edu.shu.propertyintel.service.ComparableProperty;
 import edu.shu.propertyintel.service.SearchCriteria;
 import edu.shu.propertyintel.service.SortAlgorithm;
@@ -23,6 +26,7 @@ import java.util.Scanner;
 public final class ConsoleApplication {
     private final PropertyStore store;
     private final PropertySearchService searchService;
+    private final AlgorithmComparisonService comparisonService;
     private final RecommendationService recommendationService;
     private final ComparableValuationService valuationService;
     private final Scanner input;
@@ -31,6 +35,7 @@ public final class ConsoleApplication {
     public ConsoleApplication(PropertyStore store, Scanner input, PrintStream output) {
         this.store = store;
         this.searchService = new PropertySearchService(store);
+        this.comparisonService = new AlgorithmComparisonService(store, searchService);
         this.recommendationService = new RecommendationService(store);
         this.valuationService = new ComparableValuationService(store);
         this.input = input;
@@ -39,7 +44,7 @@ public final class ConsoleApplication {
 
     public void run() {
         while (true) {
-            output.println("\nPROPERTY INTELLIGENCE ENGINE - TASK 3");
+            output.println("\nPROPERTY INTELLIGENCE ENGINE");
             output.println("1. Dataset summary");
             output.println("2. Browse properties");
             output.println("3. Find property by ID");
@@ -47,6 +52,7 @@ public final class ConsoleApplication {
             output.println("5. Search, filter and sort properties");
             output.println("6. Recommend properties");
             output.println("7. Estimate a property value");
+            output.println("8. Compare algorithms");
             output.println("0. Exit");
             String choice = read("Choose an option: ");
             if (choice == null || choice.equals("0")) {
@@ -61,7 +67,8 @@ public final class ConsoleApplication {
                 case "5" -> searchProperties();
                 case "6" -> recommendProperties();
                 case "7" -> estimateProperty();
-                default -> output.println("Invalid option. Choose 0-7.");
+                case "8" -> compareAlgorithms();
+                default -> output.println("Invalid option. Choose 0-8.");
             }
         }
     }
@@ -298,6 +305,31 @@ public final class ConsoleApplication {
         } catch (IllegalArgumentException exception) {
             output.println("Unable to estimate value: " + exception.getMessage());
         }
+    }
+
+    private void compareAlgorithms() {
+        AlgorithmComparisonReport report = comparisonService.compare();
+        output.printf("ALGORITHM COMPARISON (%d properties; %d with recorded sales)%n",
+                report.propertyCount(), report.pricedPropertyCount());
+        if (report.results().isEmpty()) {
+            output.println("No property records available for comparison.");
+            return;
+        }
+        if (report.minimumRangePrice() != null) {
+            output.printf(Locale.US, "Price-range sample: %,.2f to %,.2f (inclusive)%n",
+                    report.minimumRangePrice(), report.maximumRangePrice());
+        } else {
+            output.println("Price-range comparison skipped: no recorded sales.");
+        }
+        for (BenchmarkResult result : report.results()) {
+            output.printf("%n%s | results: %d%n", result.operation(), result.resultCount());
+            output.printf(Locale.US, "  %-18s %,.3f microseconds per operation%n",
+                    result.firstApproach(), result.firstMicroseconds());
+            output.printf(Locale.US, "  %-18s %,.3f microseconds per operation%n",
+                    result.secondApproach(), result.secondMicroseconds());
+        }
+        output.println("Times use warm-up and median measurements; they are approximate, not speed guarantees.");
+        output.println("Small datasets, JVM warm-up and hardware can change which method appears faster.");
     }
 
     private String read(String prompt) {
