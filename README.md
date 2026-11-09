@@ -1,6 +1,6 @@
 # Property Intelligence Engine — DSA Edition
 
-A Java 21 application for exploring property records, historical sales, recommendations and comparable-sale valuations. **Tasks 1–4 complete the command-line application; Task 5 adds a read-only Swing desktop interface for the dashboard, property search, details and sale history.** The GUI reuses the existing DSA-backed services.
+A Java 21 application for exploring property records, historical sales, recommendations and comparable-sale valuations. **Tasks 1–4 complete the CLI; Tasks 5–6 complete the Swing desktop application.** Both interfaces use the same DSA-backed services. No database, network or machine-learning dependency is required.
 
 The central data structures and algorithms are implemented in this repository rather than delegated to `HashMap`, `TreeMap`, `PriorityQueue`, `Arrays.sort` or `Collections.sort`.
 
@@ -34,48 +34,39 @@ java -cp target/classes edu.shu.propertyintel.Main data
 
 The optional argument is the directory holding the three CSV files. With `mvn exec:java`, the default dataset directory is `data/`.
 
-## Desktop interface — Task 5
-
-Launch the graphical application from the repository root using:
+## Desktop interface — Tasks 5 and 6
 
 ```bash
 mvn clean test
 mvn -Pdesktop exec:java
 ```
 
-Alternatively, after compiling the project, run:
+Alternatively, after compiling: `java -cp target/classes edu.shu.propertyintel.DesktopMain`. The normal `mvn exec:java` still opens the CLI. Both interfaces load the three CSV files from `data/` by default; the direct Java entry points accept an optional alternative data-directory argument.
 
-```bash
-java -cp target/classes edu.shu.propertyintel.DesktopMain
-```
+### Screens
 
-Both entry points read the same CSV files from `data/`. To use another directory with the direct Java command, supply its path as the first argument. **The default `mvn exec:java` remains the CLI.** No graphical libraries need to be installed: Swing ships with Java 21.
-
-### Screens and behavior
-
-| Screen | Functions |
+| Screen | What the user can do |
 |---|---|
-| Overview | Property, sales and neighborhood counts, number indexed by AVL, observed latest-sale price range, data-directory information and a browse shortcut |
-| Properties | Type and neighborhood dropdowns, bounded bedrooms spinner, optional minimum/maximum recorded-sale prices, custom sort algorithm and order selection; exact ID lookup, selectable results table and details panel |
-| History | Look up a property ID, read chronological sale records, view absolute and percentage change; works from the property details button too |
+| Dashboard | View dataset counts, indexed-property statistics and latest-sale price range; open property browsing |
+| Properties | Filter by type, neighborhood, minimum bedrooms and price range; choose Merge/Quick Sort and direction; open details or sale history |
+| History | View chronological transactions and calculate changes between recorded sales |
+| Recommendations | Enter a maximum budget and optional minimum bedrooms, area, type and neighborhood; receive up to five heap-ranked properties with scoring explanation |
+| Valuation | Enter a property ID and choose 1–5 comparable sales; view the estimated average and the underlying same-type comparable properties |
+| Algorithms | Run and view measured Hash Table vs linear scan, AVL vs linear scan, and Merge Sort vs Quick Sort comparisons |
 
-**Constrained, self-explanatory controls**
+### Usability and validation
 
-- Controls have visible labels and hints; only recognized property types and neighborhoods are selectable.
-- Minimum bedrooms are bounded to 0–20; 0 means no bedroom restriction. Price inputs accept up to 12 digits before the decimal and two after. Both price limits are inclusive and may be left blank.
-- The price range is validated before searching. Invalid filters leave prior results visible and show a corrective message below the table.
-- The table does **not** activate Swing's built-in sorter: its order is computed by the custom `MergeSort` or `QuickSort` selected in the interface.
-- **Find by ID** uses the existing custom hash table to retrieve one exact property (ignoring active filters). **Search** reapplies the chosen filters; **Reset** returns to all properties.
-- Selecting a row shows its details. **View sale history** opens the matching property's history without re-entering the ID.
-- Empty results, unknown IDs and properties without a recorded sale are explained in the interface, not presented as crashes or empty windows.
-- The main window fits the screen's usable area on launch, has a minimum usable size, and has scrollable tables and detail text instead of clipping data. At narrow widths, results scroll horizontally.
-- The GUI is read-only, and no repository storage or existing CLI implementation is replaced.
+- Primary actions have dark blue backgrounds with **white** text; secondary buttons and unselected navigation have light backgrounds with **dark** text. The button drawing and foreground color are explicitly controlled, avoiding macOS Look-and-Feel overrides.
+- Known property types and neighborhood names are selected from dropdowns. Price fields accept up to 12 digits and two decimal places; bedrooms are restricted to 0–20; recommendation area is 0–100,000 m²; valuation compares 1–5 properties.
+- Empty and invalid inputs display a next-step explanation. An invalid calculation does not overwrite the previous successful results; a valid search with zero matches explicitly clears old results.
+- Tables are read-only. Results are sorted by the project's own algorithms rather than Swing's built-in row sorter. Narrower windows scroll tables horizontally and long explanations vertically.
+- Recommendation scores are preferences on a 0–100 scale, **not confidence probabilities**. Valuation's relative match index is also not a confidence probability. All prices are illustrative synthetic dataset units, not current listings or certified appraisals.
+- The algorithm comparison uses `SwingWorker` so the Event Dispatch Thread remains responsive. It disables Run while work is underway and reports errors or results when finished.
+- The GUI loads the CSV dataset once at startup and reuses `PropertyStore`, `PropertySearchService`, `RecommendationService`, `ComparableValuationService` and `AlgorithmComparisonService`. It does not duplicate their DSA logic.
 
-### Code organization
+### GUI architecture
 
-`DesktopMain` loads the dataset and opens `ui.MainWindow` on the Swing event-dispatch thread. `MainWindow` provides three persistent navigation pages, while `DashboardPanel`, `SearchPanel`, `PropertyDetailsPanel` and `HistoryPanel` own their view behavior. `PropertyTableModel` and `SaleHistoryTableModel` adapt the existing records for `JTable`; `InputRules` constrains text entry. Only the existing `PropertySearchService` performs searches and sorting. The GUI deliberately introduces no extra business algorithm.
-
-**Limit for Task 5:** Recommendation, comparable valuation and performance comparison remain available through the CLI. Their Swing screens arrive in Task 6.
+`DesktopMain` opens `MainWindow` on Swing's Event Dispatch Thread. `MainWindow` maintains six page panels with `CardLayout`. The `ui` package contains the view panels (`DashboardPanel`, `SearchPanel`, `HistoryPanel`, `RecommendationPanel`, `ValuationPanel`, `ComparisonPanel`), the `JTable` adapters, `InputRules`, and the shared `UiTheme`. Backend implementation lives in `data`, `dsa`, `algorithm` and `service` packages.
 
 ## CLI features
 
@@ -133,12 +124,12 @@ CSV -> DatasetLoader -> PropertyStore
              |             |                     |
              +-------------+---------------------+
                            |
-                ConsoleApplication      Swing UI (Task 5)
+                ConsoleApplication      Swing UI (Tasks 5–6)
                            |                  |
-                AlgorithmComparisonService    Dashboard / Search / History
+                AlgorithmComparisonService    Six navigation pages
 ```
 
-The CLI is an input/output layer. Business logic remains in reusable services so the upcoming Swing GUI can call the same methods without reimplementing search, ranking or valuation.
+The CLI and Swing UI are separate presentation layers. They reuse the same services without reimplementing search, ranking, sorting or valuation.
 
 ### Main packages
 
@@ -184,7 +175,7 @@ For each approach, two warm-up trials are followed by five measured trials; the 
 
 ## Testing and validation
 
-The test suite covers data parsing, reference checking, numeric validation, hashing and collisions, linked-list ordering, AVL rotations and duplicate keys, sorting correctness, heap ordering, search filters, recommendation scoring, comparable valuation, algorithm comparison, and all eight CLI options in one scripted session. Task 5 adds model-formatting tests, bounded input tests, headless Swing panel interactions, reset/empty-result cases, exact ID lookup and history lookup.
+The test suite covers data parsing, reference checking, numeric validation, hashing and collisions, linked-list ordering, AVL rotations and duplicate keys, sorting correctness, heap ordering, search filters, recommendation scoring, comparable valuation, algorithm comparison, and all eight CLI options in one scripted session. Tasks 5–6 add table-model tests, bounded input tests, headless Swing panel interactions, reset/empty-result cases, exact ID lookup, recommendation and valuation UI, and button contrast checks. The combined suite contains **85 JUnit test methods** as of Task 6.
 
 Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit tests. Do not treat a compilation-only run or `-DskipTests` as a completed validation. The CLI can also be exercised manually using `mvn exec:java`.
 
@@ -194,7 +185,7 @@ Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit t
 - Recommendations use a fixed scoring formula rather than learned personal preferences.
 - Comparable valuation averages a small set of related past sales; it does not estimate uncertainty or market dynamics.
 - Benchmark readings are illustrative micro-timings. Production performance investigation would use larger controlled datasets and JMH.
-- The dashboard, search and history have a Swing interface; recommendation, valuation and algorithm comparison screens are scheduled for Task 6.
+- The desktop interface is read-only and targets regular desktop window sizes (tested at 1000×650 and larger); it is not designed for mobile screens.
 
 ## Development roadmap
 
@@ -203,5 +194,5 @@ Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit t
 - [x] Task 3 — Max Heap, recommendations, comparable valuation
 - [x] Task 4 — Complete CLI, validation, integration tests, algorithm comparison
 - [x] Task 5 — Swing dashboard, search and sale history
-- [ ] Task 6 — Swing recommendations, valuation and integration
+- [x] Task 6 — Swing recommendations, valuation, algorithm comparison and readable button styling
 - [ ] Task 7 — Final technical documentation, screenshots and report
