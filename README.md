@@ -1,6 +1,6 @@
 # Property Intelligence Engine — DSA Edition
 
-A Java 21 application for exploring property records, historical sales, recommendations and comparable-sale valuations. **Task 4 completes the command-line application.** Tasks 5–6 will add a Swing desktop interface using the same services.
+A Java 21 application for exploring property records, historical sales, recommendations and comparable-sale valuations. **Tasks 1–4 complete the command-line application; Task 5 adds a read-only Swing desktop interface for the dashboard, property search, details and sale history.** The GUI reuses the existing DSA-backed services.
 
 The central data structures and algorithms are implemented in this repository rather than delegated to `HashMap`, `TreeMap`, `PriorityQueue`, `Arrays.sort` or `Collections.sort`.
 
@@ -14,7 +14,8 @@ The central data structures and algorithms are implemented in this repository ra
 
 ```bash
 mvn clean test
-mvn exec:java
+mvn exec:java                  # original command-line application
+mvn -Pdesktop exec:java        # Swing desktop application
 ```
 
 If macOS AppleDouble `._*` files on an external SSD interfere with JUnit test discovery, run the build and test phases separately:
@@ -32,6 +33,49 @@ java -cp target/classes edu.shu.propertyintel.Main data
 ```
 
 The optional argument is the directory holding the three CSV files. With `mvn exec:java`, the default dataset directory is `data/`.
+
+## Desktop interface — Task 5
+
+Launch the graphical application from the repository root using:
+
+```bash
+mvn clean test
+mvn -Pdesktop exec:java
+```
+
+Alternatively, after compiling the project, run:
+
+```bash
+java -cp target/classes edu.shu.propertyintel.DesktopMain
+```
+
+Both entry points read the same CSV files from `data/`. To use another directory with the direct Java command, supply its path as the first argument. **The default `mvn exec:java` remains the CLI.** No graphical libraries need to be installed: Swing ships with Java 21.
+
+### Screens and behavior
+
+| Screen | Functions |
+|---|---|
+| Overview | Property, sales and neighborhood counts, number indexed by AVL, observed latest-sale price range, data-directory information and a browse shortcut |
+| Properties | Type and neighborhood dropdowns, bounded bedrooms spinner, optional minimum/maximum recorded-sale prices, custom sort algorithm and order selection; exact ID lookup, selectable results table and details panel |
+| History | Look up a property ID, read chronological sale records, view absolute and percentage change; works from the property details button too |
+
+**Constrained, self-explanatory controls**
+
+- Controls have visible labels and hints; only recognized property types and neighborhoods are selectable.
+- Minimum bedrooms are bounded to 0–20; 0 means no bedroom restriction. Price inputs accept up to 12 digits before the decimal and two after. Both price limits are inclusive and may be left blank.
+- The price range is validated before searching. Invalid filters leave prior results visible and show a corrective message below the table.
+- The table does **not** activate Swing's built-in sorter: its order is computed by the custom `MergeSort` or `QuickSort` selected in the interface.
+- **Find by ID** uses the existing custom hash table to retrieve one exact property (ignoring active filters). **Search** reapplies the chosen filters; **Reset** returns to all properties.
+- Selecting a row shows its details. **View sale history** opens the matching property's history without re-entering the ID.
+- Empty results, unknown IDs and properties without a recorded sale are explained in the interface, not presented as crashes or empty windows.
+- The main window fits the screen's usable area on launch, has a minimum usable size, and has scrollable tables and detail text instead of clipping data. At narrow widths, results scroll horizontally.
+- The GUI is read-only, and no repository storage or existing CLI implementation is replaced.
+
+### Code organization
+
+`DesktopMain` loads the dataset and opens `ui.MainWindow` on the Swing event-dispatch thread. `MainWindow` provides three persistent navigation pages, while `DashboardPanel`, `SearchPanel`, `PropertyDetailsPanel` and `HistoryPanel` own their view behavior. `PropertyTableModel` and `SaleHistoryTableModel` adapt the existing records for `JTable`; `InputRules` constrains text entry. Only the existing `PropertySearchService` performs searches and sorting. The GUI deliberately introduces no extra business algorithm.
+
+**Limit for Task 5:** Recommendation, comparable valuation and performance comparison remain available through the CLI. Their Swing screens arrive in Task 6.
 
 ## CLI features
 
@@ -89,9 +133,9 @@ CSV -> DatasetLoader -> PropertyStore
              |             |                     |
              +-------------+---------------------+
                            |
-                  ConsoleApplication
-                           |
-                AlgorithmComparisonService
+                ConsoleApplication      Swing UI (Task 5)
+                           |                  |
+                AlgorithmComparisonService    Dashboard / Search / History
 ```
 
 The CLI is an input/output layer. Business logic remains in reusable services so the upcoming Swing GUI can call the same methods without reimplementing search, ranking or valuation.
@@ -106,6 +150,7 @@ The CLI is an input/output layer. Business logic remains in reusable services so
 | `algorithm` | Custom generic Merge Sort and Quick Sort |
 | `service` | Search, recommendation, valuation and algorithm comparison |
 | `cli` | Validated interactive command-line menus and formatted output |
+| `ui` | Swing view components, table models and bounded, labeled input controls |
 
 ## DSA complexity
 
@@ -139,7 +184,7 @@ For each approach, two warm-up trials are followed by five measured trials; the 
 
 ## Testing and validation
 
-The test suite covers data parsing, reference checking, numeric validation, hashing and collisions, linked-list ordering, AVL rotations and duplicate keys, sorting correctness, heap ordering, search filters, recommendation scoring, comparable valuation, algorithm comparison, and all eight CLI options in one scripted session.
+The test suite covers data parsing, reference checking, numeric validation, hashing and collisions, linked-list ordering, AVL rotations and duplicate keys, sorting correctness, heap ordering, search filters, recommendation scoring, comparable valuation, algorithm comparison, and all eight CLI options in one scripted session. Task 5 adds model-formatting tests, bounded input tests, headless Swing panel interactions, reset/empty-result cases, exact ID lookup and history lookup.
 
 Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit tests. Do not treat a compilation-only run or `-DskipTests` as a completed validation. The CLI can also be exercised manually using `mvn exec:java`.
 
@@ -149,7 +194,7 @@ Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit t
 - Recommendations use a fixed scoring formula rather than learned personal preferences.
 - Comparable valuation averages a small set of related past sales; it does not estimate uncertainty or market dynamics.
 - Benchmark readings are illustrative micro-timings. Production performance investigation would use larger controlled datasets and JMH.
-- The graphical interface is scheduled for Tasks 5–6.
+- The dashboard, search and history have a Swing interface; recommendation, valuation and algorithm comparison screens are scheduled for Task 6.
 
 ## Development roadmap
 
@@ -157,6 +202,6 @@ Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit t
 - [x] Task 2 — AVL price index, property filters, Merge Sort, Quick Sort
 - [x] Task 3 — Max Heap, recommendations, comparable valuation
 - [x] Task 4 — Complete CLI, validation, integration tests, algorithm comparison
-- [ ] Task 5 — Swing dashboard, search and sale history
+- [x] Task 5 — Swing dashboard, search and sale history
 - [ ] Task 6 — Swing recommendations, valuation and integration
 - [ ] Task 7 — Final technical documentation, screenshots and report
