@@ -5,6 +5,12 @@ import edu.shu.propertyintel.model.Neighborhood;
 import edu.shu.propertyintel.model.Property;
 import edu.shu.propertyintel.model.Sale;
 import edu.shu.propertyintel.service.PropertySearchService;
+import edu.shu.propertyintel.service.RecommendationCriteria;
+import edu.shu.propertyintel.service.RecommendationService;
+import edu.shu.propertyintel.service.PropertyRecommendation;
+import edu.shu.propertyintel.service.ComparableValuationService;
+import edu.shu.propertyintel.service.ValuationResult;
+import edu.shu.propertyintel.service.ComparableProperty;
 import edu.shu.propertyintel.service.SearchCriteria;
 import edu.shu.propertyintel.service.SortAlgorithm;
 import edu.shu.propertyintel.service.SortField;
@@ -17,24 +23,30 @@ import java.util.Scanner;
 public final class ConsoleApplication {
     private final PropertyStore store;
     private final PropertySearchService searchService;
+    private final RecommendationService recommendationService;
+    private final ComparableValuationService valuationService;
     private final Scanner input;
     private final PrintStream output;
 
     public ConsoleApplication(PropertyStore store, Scanner input, PrintStream output) {
         this.store = store;
         this.searchService = new PropertySearchService(store);
+        this.recommendationService = new RecommendationService(store);
+        this.valuationService = new ComparableValuationService(store);
         this.input = input;
         this.output = output;
     }
 
     public void run() {
         while (true) {
-            output.println("\nPROPERTY INTELLIGENCE ENGINE - TASK 2");
+            output.println("\nPROPERTY INTELLIGENCE ENGINE - TASK 3");
             output.println("1. Dataset summary");
             output.println("2. Browse properties");
             output.println("3. Find property by ID");
             output.println("4. View sale history");
             output.println("5. Search, filter and sort properties");
+            output.println("6. Recommend properties");
+            output.println("7. Estimate a property value");
             output.println("0. Exit");
             String choice = read("Choose an option: ");
             if (choice == null || choice.equals("0")) {
@@ -47,7 +59,9 @@ public final class ConsoleApplication {
                 case "3" -> findProperty();
                 case "4" -> showHistory();
                 case "5" -> searchProperties();
-                default -> output.println("Invalid option. Choose 0-5.");
+                case "6" -> recommendProperties();
+                case "7" -> estimateProperty();
+                default -> output.println("Invalid option. Choose 0-7.");
             }
         }
     }
@@ -220,6 +234,69 @@ public final class ConsoleApplication {
             }
             output.println();
             previous = sale;
+        }
+    }
+
+    private void recommendProperties() {
+        output.println("Provide your requirements. Leave optional filters blank.");
+        String budget = read("Maximum budget: ");
+        String bedrooms = read("Minimum bedrooms [0]: ");
+        String area = read("Minimum area in sqm [0]: ");
+        String type = read("Property type (optional): ");
+        String neighborhood = read("Neighborhood name or ID (optional): ");
+        if (budget == null || bedrooms == null || area == null || type == null || neighborhood == null) {
+            return;
+        }
+        try {
+            RecommendationCriteria criteria = new RecommendationCriteria(
+                    Double.parseDouble(budget),
+                    bedrooms.isBlank() ? 0 : Integer.parseInt(bedrooms),
+                    area.isBlank() ? 0 : Double.parseDouble(area),
+                    type, neighborhood);
+            List<PropertyRecommendation> results = recommendationService.recommend(criteria, 5);
+            if (results.isEmpty()) {
+                output.println("No properties matched your requirements.");
+                return;
+            }
+            output.println("TOP RECOMMENDATIONS (out of 100; higher scores rank first)");
+            output.printf("%-8s %-12s %-14s %12s %8s%n",
+                    "ID", "TYPE", "NEIGHBORHOOD", "PRICE", "SCORE");
+            for (PropertyRecommendation result : results) {
+                Property property = result.property();
+                Neighborhood location = store.findNeighborhood(property.neighborhoodId());
+                output.printf(Locale.US, "%-8s %-12s %-14s %,12.0f %8.1f%n",
+                        property.id(), property.type(), location.name(), result.price(), result.score());
+            }
+            output.println("Score considers affordability, school, safety, transit, area, and parking.");
+        } catch (IllegalArgumentException exception) {
+            output.println("Invalid recommendation input: " + exception.getMessage());
+        }
+    }
+
+    private void estimateProperty() {
+        String id = read("Property ID to value: ");
+        if (id == null) {
+            return;
+        }
+        try {
+            java.util.Optional<ValuationResult> estimate = valuationService.estimate(id, 3);
+            if (estimate.isEmpty()) {
+                output.println("No suitable same-type properties with sale prices are available.");
+                return;
+            }
+            ValuationResult result = estimate.get();
+            output.printf(Locale.US, "Estimated value of %s: %,.2f%n",
+                    result.property().id(), result.estimatedPrice());
+            output.printf("Based on %d comparable property sale(s):%n", result.comparables().size());
+            for (ComparableProperty comparable : result.comparables()) {
+                output.printf(Locale.US, "%-8s %12s %,.2f  relative match %.3f%n",
+                        comparable.property().id(), comparable.property().type(),
+                        comparable.latestPrice(), comparable.similarity());
+            }
+            output.println("Relative match is a 0-1 comparison index, not a confidence probability.");
+            output.println("Illustrative estimate based on recorded sales, not an official appraisal.");
+        } catch (IllegalArgumentException exception) {
+            output.println("Unable to estimate value: " + exception.getMessage());
         }
     }
 
