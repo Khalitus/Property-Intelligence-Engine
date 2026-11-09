@@ -1,0 +1,20 @@
+digraph Architecture {
+ graph [rankdir=TB, bgcolor="white", pad="0.38", nodesep="0.42", ranksep="0.55", splines=polyline, fontname="DejaVu Sans", label="PROPERTY INTELLIGENCE ENGINE | SYSTEM ARCHITECTURE", labelloc=t, fontsize=17, fontcolor="#203046"];
+ node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", color="#cad5df", fillcolor="#f8fafc", fontcolor="#203046", margin="0.20,0.11"];
+ edge [color="#75869a", arrowsize=.62, penwidth=1.15];
+ csv [label="Local CSV dataset\nproperties · sales · neighborhoods", fillcolor="#eff4ee", color="#b2c5b3"];
+ loader [label="CsvReader / DatasetLoader\nparse · validate records"];
+ store [label="PropertyStore\nID indexes · chronological sales", fillcolor="#eaf1f7"];
+ dsa [label="Custom DSA\nHash Table · Linked List · AVL Tree · Max Heap"];
+ services [label="Application services\nSearch · Recommendations · Valuation · Algorithm comparison", fillcolor="#f4f6ff", color="#bdc8e6"];
+ sorting [label="Custom sorting\nMerge Sort · Quick Sort"];
+ cli [label="CLI\nConsoleApplication", fillcolor="#f7f9fb"];
+ gui [label="Swing desktop\nMainWindow · six screens", fillcolor="#f7f9fb"];
+ csv -> loader -> store -> services;
+ store -> dsa [style=dashed, constraint=false];
+ services -> sorting [style=dashed, constraint=false];
+ services -> cli; services -> gui;
+ { rank=same; store; dsa }
+ { rank=same; services; sorting }
+ { rank=same; cli; gui }
+}

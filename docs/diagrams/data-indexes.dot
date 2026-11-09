@@ -1,0 +1,19 @@
+digraph DataIndexes {
+  graph [rankdir=TB, bgcolor="white", pad="0.34", nodesep="0.50", ranksep="0.54", splines=polyline, fontname="DejaVu Sans", label="DATA INGESTION AND INDEXES", labelloc=t, fontsize=17, fontcolor="#203046"];
+  node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", color="#cad5df", fillcolor="#f8fafc", fontcolor="#203046", margin="0.19,0.12"];
+  edge [color="#75869a", arrowsize=.65, penwidth=1.1];
+  csv [label="Three CSV files\n1,500 properties · 4,751 sales · 12 neighborhoods", fillcolor="#eff4ee"];
+  load [label="CsvReader + DatasetLoader\nheader parsing · conversion · validation"];
+  store [label="PropertyStore\nrecords and referential integrity", fillcolor="#e9f2f8"];
+  lookups [label="Hash tables\nproperty ID → Property\nneighborhood ID → Neighborhood"];
+  hist [label="Hash table → linked lists\nproperty ID → chronological Sales"];
+  all [label="Linked list\nall properties · sequential traversal"];
+  price [label="AVL price index\nlatest sale price → list of Properties\nbuilt by PropertySearchService"];
+  search [label="Search / filter / custom sort\nprice range + other criteria", fillcolor="#f4f6ff"];
+  history [label="Sale History\ndated sales and changes", fillcolor="#f4f6ff"];
+  csv -> load -> store;
+  store -> lookups; store -> hist; store -> all; store -> price [style=dashed];
+  lookups -> search; all -> search; price -> search; hist -> history;
+  {rank=same; lookups; hist; all; price}
+  {rank=same; search; history}
+}

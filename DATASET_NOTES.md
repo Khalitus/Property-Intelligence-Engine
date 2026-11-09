@@ -1,87 +1,79 @@
-# Property Intelligence Engine — Expanded Synthetic Dataset
+# Dataset specification and provenance
 
-This is a **synthetic demonstration dataset**, not actual property transactions, a real housing-market sample, or a verified currency-based valuation source. It is designed to exercise the existing Java DSA application's property lookup, AVL price indexing, historical sales, sorting, recommendations, comparable valuation, and algorithm comparisons.
+The dataset in `data/` is **fictional and deterministically generated** for demonstrating the Property Intelligence Engine's data structures, algorithms and UI. It is **not** a sample of verified property listings, market transactions, or real neighborhood measurements. Prices are recorded in **unspecified synthetic units**, not PKR, USD, or any other currency.
 
-## Contents
+## Committed contents
 
-| File | Records | Structure |
-|---|---:|---|
-| `data/properties.csv` | 1,500 | One row per property |
-| `data/sales.csv` | 4,751 | Chronologically varied sale events, across the properties |
-| `data/neighborhoods.csv` | 12 | Locality-level scores and distance indicators |
+| File | Records | Primary ID | References |
+|---|---:|---|---|
+| `data/properties.csv` | 1,500 | `property_id` | `neighborhood_id` → neighborhoods |
+| `data/sales.csv` | 4,751 | `sale_id` | `property_id` → properties |
+| `data/neighborhoods.csv` | 12 | `neighborhood_id` | — |
 
-There are **1,471 properties with sale records** and **29 intentionally without recorded sales**, to exercise missing-history handling. Among sold properties, 94 have one sale; 1,377 have two to five sales. Recorded sales span 2011–2026. Dates are no later than October 2026.
+**1,471 properties have recorded transactions; 29 intentionally have none.** Among properties with sales, 94 have one sale and 1,377 have between two and five. Dates span **2011–2026**. The newest transaction is dated **2026-10-27**. Property IDs run from `P0001` through `P1500`.
 
-## Compatibility
+## Exact CSV schemas
 
-The field names and types match `DatasetLoader.java` in Property Intelligence Engine (Java 21, Tasks 1–6). No Java code changes are required.
+**Properties:**
 
-**Property fields**: `property_id, neighborhood_id, property_type, bedrooms, bathrooms, area_sqm, year_built, parking_spaces, floor, furnished, amenities, description`
-
-**Sales fields**: `sale_id, property_id, sale_date, sale_price`
-
-**Neighborhood fields**: `neighborhood_id, neighborhood_name, distance_to_center_km, school_score, transit_score, safety_score`
-
-IDs range from `P0001` to `P1500`; existing `N01`–`N06` localities and their scores were retained, with `N07`–`N12` added. Sales use unique IDs and valid property references. Dates are ISO `YYYY-MM-DD`, and `furnished` is encoded as 0/1.
-
-Property types include Apartment, House, Townhouse, Villa, and Studio. Prices are in **unspecified synthetic monetary units** and should not be labeled USD, PKR, or any other actual currency. The sample is not geographically anchored to any real city.
-
-## How the records were generated
-
-- Deterministic generator seed: `20261109`.
-- Building type influences floor, bedrooms, bathrooms, space, parking, and available amenities.
-- The location, floor area, property type, construction year, property condition, parking, and furnishings influence an illustrative underlying property price.
-- Historical sale prices reflect an approximate synthetic annual trend, with bounded random variation. They are not historical observations or a forecast.
-- Multiple sales for a property are separated by at least two calendar years, and every sale occurs after the recorded build year.
-- Rows in `sales.csv` are deliberately unsorted, demonstrating the app's custom linked-list chronological insertion.
-- Monetary prices are rounded to the nearest 500; duplicate latest-sale prices are expected, exercising the AVL duplicate-key behavior.
-
-## Install into your existing project
-
-In your project directory, first preserve the current sample files outside the repository:
-
-```bash
-cd "/Volumes/SSD/Projects/Property Intelligence Engine"
-cp -R data ../PropertyIntelligence-data-backup
+```text
+property_id,neighborhood_id,property_type,bedrooms,bathrooms,area_sqm,year_built,parking_spaces,floor,furnished,amenities,description
 ```
 
-Then extract the ZIP **from the project root** (with the ZIP in Downloads):
+**Sales:**
 
-```bash
-unzip -o ~/Downloads/PropertyIntelligence-LargeDataset.zip -d .
+```text
+sale_id,property_id,sale_date,sale_price
 ```
 
-Run the tests and desktop UI:
+**Neighborhoods:**
 
-```bash
-mvn clean test
-mvn -Pdesktop exec:java
+```text
+neighborhood_id,neighborhood_name,distance_to_center_km,school_score,transit_score,safety_score
 ```
 
-Or use the original CLI:
+The `furnished` field uses `0`/`1`; sale dates are ISO `YYYY-MM-DD`. Values may be quoted using standard CSV rules. `CsvReader` and `DatasetLoader` implement and validate these exact headers.
 
-```bash
-mvn exec:java
-```
+The five property types are **Apartment, House, Townhouse, Villa, Studio**. Neighborhood IDs include the original `N01`–`N06` and additional `N07`–`N12`. Location names are fictional for this demonstration; the dataset is not mapped to real geographic coordinates.
 
-In Dashboard / Dataset Summary you should see **1,500 properties; 4,751 sales; 12 neighborhoods; 1,471 properties with recorded sales**. To try a property lookup, use `P0001` or `P1000`.
+## Generation method
 
-The app's JUnit tests use their own fixtures, so replacing the CSV dataset should not alter their assertions. If you encounter the known external-SSD macOS `._` metadata issue with Maven test discovery, use your existing clean/test-compile/metadata-removal/Surefire sequence.
+The source is `tools/generate_dataset.py`; it uses the **Python 3 standard library** and random seed **`20261109`**. The resulting values are correlated rather than independently random:
 
-## Reproduction
+- Property type influences area, layout, floor, rooms, parking and amenities.
+- Neighborhood scores, property features and construction age influence an illustrative underlying price.
+- Historical transactions apply a synthetic annual price trend and bounded variation; they are **not** historical observations or a forecast.
+- A property can have one or multiple dated sales, with at least two years between generated transactions.
+- Sales are intentionally shuffled in `sales.csv`, demonstrating chronological linked-list insertion.
+- Prices are rounded to the nearest 500, producing repeated keys that exercise AVL duplicate-price handling.
+- Several properties deliberately have **no sale records**, testing missing-history and missing-price paths.
 
-The generator is included at `tools/generate_dataset.py`. It uses only the Python 3 standard library and writes the same three files under `data/`:
+To regenerate (this **overwrites** the committed CSV files):
 
 ```bash
 python3 tools/generate_dataset.py
 ```
 
-The generator is not used by the Java application at runtime; the Java application reads the CSV files directly.
+Review changes with `git diff -- data/` before committing a regeneration. The Java application **never executes the generator**; it loads the existing CSV files directly.
 
-## Limitations
+## Data quality checks
 
-These values are fictional and partly determined by chosen simulation formulas. They can demonstrate code behavior, algorithmic differences, index balancing, and recommendation/valuation **logic**, but they cannot validate real-world accuracy or support factual market conclusions. Benchmark times are environment-dependent, not guaranteed speedups.
+`ExpandedDatasetIntegrationTest` asserts the expected counts and relationships, checks that every sale refers to an existing property, verifies sales do not predate the property's construction year, verifies the 1,471-property AVL index coverage, and exercises recommendations, valuation and algorithm comparison.
 
-## Application valuation policy (pre-documentation checkpoint)
+Run from the repository root:
 
-The Java valuation service uses only same-type comparables whose **latest** sale is on or after the inclusive cutoff three years before the newest sale anywhere in these CSVs. For this dataset, the newest sale is **2026-10-27**, giving a cutoff of **2023-10-27**. Fewer than the requested number of comparables may be returned. Historic sales older than the cutoff remain accessible from the Sale History view. Recorded sale dates appear with prices in the desktop tables and CLI. No inflation or time adjustment is applied.
+```bash
+mvn clean test
+```
+
+`PropertyStore` also rejects duplicate IDs, unknown references and invalid numeric fields when loading data. The generator deliberately includes duplicate **price values** (valid) but does not create duplicate **record IDs** (invalid).
+
+## How application features interpret prices
+
+- **Property search:** filters on **latest recorded sale price**, not listing price. Properties without sales remain searchable when price is unrestricted.
+- **Sale history:** presents transactions chronologically, with changes between adjacent sales.
+- **Recommendations:** use latest recorded sale prices for budget eligibility and preference scoring; results are **not currently available listings**.
+- **Comparable valuation:** chooses same-type properties whose latest sale is within three years of the **newest sale in the loaded dataset**. For this dataset, the **inclusive cutoff is 2023-10-27**. It computes the unadjusted mean of selected sale prices; it does **not** correct for sale date, inflation, neighborhood market differences or uncertainty.
+- **Benchmarks:** compare algorithms on the loaded records, without treating synthetic timing results as evidence of real-world market performance.
+
+The dataset is suitable for **reproducible DSA behavior and integration testing**, not for a factual study of property prices or the accuracy of a financial estimate.

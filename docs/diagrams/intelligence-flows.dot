@@ -1,0 +1,24 @@
+digraph Intelligence {
+  graph [rankdir=TB, bgcolor="white", pad="0.32", nodesep="0.65", ranksep="0.62", splines=polyline, fontname="DejaVu Sans", label="EXPLAINABLE PROPERTY INTELLIGENCE", labelloc=t, fontsize=17, fontcolor="#203046"];
+  node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", color="#cad5df", fillcolor="#f8fafc", fontcolor="#203046", margin="0.20,0.13"];
+  edge [color="#75869a", arrowsize=.67, penwidth=1.15];
+  subgraph cluster_rec {
+    label="RECOMMENDATIONS"; style="rounded"; color="#bdc8e6"; fontname="DejaVu Sans"; fontcolor="#203046";
+    r_input [label="Budget, min. bedrooms, min. area\ntype and neighborhood (optional)", fillcolor="#eaf1f7"];
+    r_filter [label="Exclude properties without a sale,\nover budget, or below requirements"];
+    r_score [label="Score out of 100\naffordability · school · safety\ntransit · area · parking"];
+    r_heap [label="Custom MaxHeap\nrank eligible properties"];
+    r_out [label="Up to 5 results\nscore · price · sale date", fillcolor="#eff4ee"];
+    r_input -> r_filter -> r_score -> r_heap -> r_out;
+  }
+  subgraph cluster_val {
+    label="COMPARABLE VALUATION"; style="rounded"; color="#b2c5b3"; fontname="DejaVu Sans"; fontcolor="#203046";
+    v_input [label="Existing property ID\nrequested comparables: 1–5", fillcolor="#eaf1f7"];
+    v_filter [label="Exclude subject / different type;\nlatest sale before three-year cutoff"];
+    v_score [label="Physical difference measure\narea · bedrooms · bathrooms\nparking · neighborhood"];
+    v_heap [label="Custom MaxHeap\nrank by similarity index"];
+    v_out [label="Mean of selected sale prices\nwith dates and source properties", fillcolor="#eff4ee"];
+    v_input -> v_filter -> v_score -> v_heap -> v_out;
+  }
+  {rank=same; r_input; v_input}
+}
