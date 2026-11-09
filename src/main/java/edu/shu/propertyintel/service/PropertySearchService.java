@@ -36,6 +36,13 @@ public final class PropertySearchService {
         return priceIndex.height();
     }
 
+    List<Property> pricedPropertiesInRange(double minimum, double maximum) {
+        if (!Double.isFinite(minimum) || !Double.isFinite(maximum) || minimum < 0 || minimum > maximum) {
+            throw new IllegalArgumentException("Invalid price range");
+        }
+        return priceIndex.rangeSearch(minimum, maximum);
+    }
+
     public List<Property> search(SearchCriteria criteria, SortField sortField,
                                  SortAlgorithm algorithm, boolean ascending) {
         Objects.requireNonNull(criteria, "criteria");
