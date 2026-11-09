@@ -12,6 +12,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.11.4</junit.version>
+        <application.mainClass>edu.shu.propertyintel.Main</application.mainClass>
     </properties>
 
     <dependencies>
@@ -46,9 +47,18 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>edu.shu.propertyintel.Main</mainClass>
+                    <mainClass>${application.mainClass}</mainClass>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>desktop</id>
+            <properties>
+                <application.mainClass>edu.shu.propertyintel.DesktopMain</application.mainClass>
+            </properties>
+        </profile>
+    </profiles>
 </project>
