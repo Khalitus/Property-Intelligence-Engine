@@ -12,7 +12,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
@@ -36,9 +35,18 @@ public final class MainWindow extends JFrame {
         });
         DashboardPanel dashboardPanel = new DashboardPanel(store, search, dataDirectory,
                 () -> open("Properties"));
+        RecommendationPanel recommendationPanel = new RecommendationPanel(store, property -> {
+            historyPanel.showProperty(property.id());
+            open("History");
+        });
+        ValuationPanel valuationPanel = new ValuationPanel(store);
+        ComparisonPanel comparisonPanel = new ComparisonPanel(store, search);
         pages.add(dashboardPanel, "Dashboard");
         pages.add(searchPanel, "Properties");
         pages.add(historyPanel, "History");
+        pages.add(recommendationPanel, "Recommendations");
+        pages.add(valuationPanel, "Valuation");
+        pages.add(comparisonPanel, "Algorithms");
         pages.setBackground(UiTheme.BACKGROUND);
 
         JPanel main = new JPanel(new BorderLayout());
@@ -75,15 +83,13 @@ public final class MainWindow extends JFrame {
         sub.setFont(sub.getFont().deriveFont(Font.BOLD, 10f));
         sub.setAlignmentX(LEFT_ALIGNMENT);
         side.add(sub);
-        side.add(Box.createVerticalStrut(38));
+        side.add(Box.createVerticalStrut(28));
 
-        for (String page : new String[]{"Dashboard", "Properties", "History"}) {
-            JButton button = new JButton(page);
+        for (String page : new String[]{"Dashboard", "Properties", "History", "Recommendations", "Valuation", "Algorithms"}) {
+            JButton button = UiTheme.navigationButton(page);
             button.setName("nav." + page.toLowerCase());
             button.setHorizontalAlignment(JButton.LEFT);
             button.setFocusPainted(false);
-            button.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
-            button.setOpaque(true);
             button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
             button.setAlignmentX(LEFT_ALIGNMENT);
             button.addActionListener(event -> open(page));
@@ -104,8 +110,7 @@ public final class MainWindow extends JFrame {
         for (Map.Entry<String, JButton> entry : navigation.entrySet()) {
             boolean selected = entry.getKey().equals(page);
             JButton button = entry.getValue();
-            button.setBackground(selected ? UiTheme.ACCENT : UiTheme.SURFACE);
-            button.setForeground(selected ? Color.WHITE : UiTheme.INK);
+            UiTheme.selectNavigation(button, selected);
             button.setFont(button.getFont().deriveFont(selected ? Font.BOLD : Font.PLAIN, 13f));
         }
     }
