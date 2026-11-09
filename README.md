@@ -1,6 +1,6 @@
 # Property Intelligence Engine — DSA Edition
 
-A Java 21 application for exploring property records, historical sales, recommendations and comparable-sale valuations. **Tasks 1–4 complete the CLI; Tasks 5–6 complete the Swing desktop application.** Both interfaces use the same DSA-backed services. No database, network or machine-learning dependency is required.
+A Java 21 application for exploring property records, historical sales, recommendations and comparable-sale valuations. **Tasks 1–4 complete the CLI; Tasks 5–6 complete the Swing desktop application; a small pre-documentation checkpoint updates recency handling.** Both interfaces use the same DSA-backed services. No database, network or machine-learning dependency is required.
 
 The central data structures and algorithms are implemented in this repository rather than delegated to `HashMap`, `TreeMap`, `PriorityQueue`, `Arrays.sort` or `Collections.sort`.
 
@@ -50,8 +50,8 @@ Alternatively, after compiling: `java -cp target/classes edu.shu.propertyintel.D
 | Dashboard | View dataset counts, indexed-property statistics and latest-sale price range; open property browsing |
 | Properties | Filter by type, neighborhood, minimum bedrooms and price range; choose Merge/Quick Sort and direction; open details or sale history |
 | History | View chronological transactions and calculate changes between recorded sales |
-| Recommendations | Enter a maximum budget and optional minimum bedrooms, area, type and neighborhood; receive up to five heap-ranked properties with scoring explanation |
-| Valuation | Enter a property ID and choose 1–5 comparable sales; view the estimated average and the underlying same-type comparable properties |
+| Recommendations | Enter a maximum budget and optional minimum bedrooms, area, type and neighborhood; receive up to five heap-ranked properties with recorded sale dates and scoring explanation |
+| Valuation | Enter a property ID and choose 1–5 recent comparable sales; view their dated transaction prices and the unadjusted average |
 | Algorithms | Run and view measured Hash Table vs linear scan, AVL vs linear scan, and Merge Sort vs Quick Sort comparisons |
 
 ### Usability and validation
@@ -89,16 +89,14 @@ PROPERTY INTELLIGENCE ENGINE
 4. **Sale history:** print chronologically ordered sales and absolute/percentage changes.
 5. **Search:** filter by property type, neighborhood name/ID, minimum bedrooms, and inclusive latest-sale-price bounds; sort by price, area, bedrooms or year built using Merge Sort or Quick Sort, in either direction.
 6. **Recommendations:** find up to five affordable properties meeting required bedrooms, area, type and neighborhood; rank eligible properties with a custom Max Heap and a transparent preference score.
-7. **Comparable valuation:** find up to three same-type properties with recorded sales, rank by similarity, and average their latest sale prices. This is a synthetic-data heuristic, **not** a certified appraisal or ML prediction.
+7. **Comparable valuation:** select up to three same-type properties with latest recorded sales within three years of the **dataset's most recent sale date** (not the current calendar date). Rank the eligible comparables by similarity and average their unadjusted sale prices. When fewer recent matches exist, return fewer instead of mixing in stale sales. This is a synthetic-data heuristic, **not** a certified appraisal or ML prediction.
 8. **Algorithm comparison:** compare property lookup (hash table vs linear scan), price-range retrieval (AVL vs linear scan), and area sorting (Merge Sort vs Quick Sort) on the loaded dataset.
 
 Blank search filters are optional. Default values are displayed in square brackets. Invalid input is reported without terminating the application.
 
 ## Dataset
 
-The included `data/` directory contains **12 illustrative properties, 24 sales, and 6 neighborhoods**. It is a development fixture, not a real housing market dataset.
-
-To use the original larger synthetic dataset, replace the three files with the matching schema from [property-intelligence-engine/data](https://github.com/Khalitus/applied-agentic-ai-projects/tree/main/property-intelligence-engine/data):
+The committed dataset contains **1,500 synthetic properties, 4,751 historical sales, and 12 neighborhoods**; 1,471 properties have recorded sales and 29 intentionally have none. The files are read-only and load at startup. Details and a deterministic generator are in [`DATASET_NOTES.md`](DATASET_NOTES.md) and `tools/generate_dataset.py`.
 
 ```text
 data/properties.csv
@@ -106,7 +104,11 @@ data/sales.csv
 data/neighborhoods.csv
 ```
 
-The CSV parser supports quoted fields, escaped quotes, embedded newlines and UTF-8 input. The loader verifies references between neighborhoods, properties and sales and rejects invalid numeric values. The application is currently read-only: the CSV data is loaded once at startup and indexes are built from those records.
+The CSV parser supports quoted fields, escaped quotes, embedded newlines and UTF-8 input. The loader validates record structure and references. The data is fictional; sale prices are **unspecified synthetic units**, not PKR, USD, or live listings.
+
+### Recency policy for comparable valuation
+
+The service finds the most recent recorded sale in the **loaded dataset** and sets an inclusive cutoff exactly **three years before that date**. Only a candidate property's *latest* sale on or after the cutoff can be selected. This is a reproducible sampling rule, not an adjustment for price inflation or a claim of market accuracy. Older sales remain available in the History screen and for other operations. If fewer recent same-type comparables exist than requested, the estimate uses only those found; with none, it reports that an estimate is unavailable.
 
 ## Architecture
 
@@ -175,7 +177,7 @@ For each approach, two warm-up trials are followed by five measured trials; the 
 
 ## Testing and validation
 
-The test suite covers data parsing, reference checking, numeric validation, hashing and collisions, linked-list ordering, AVL rotations and duplicate keys, sorting correctness, heap ordering, search filters, recommendation scoring, comparable valuation, algorithm comparison, and all eight CLI options in one scripted session. Tasks 5–6 add table-model tests, bounded input tests, headless Swing panel interactions, reset/empty-result cases, exact ID lookup, recommendation and valuation UI, and button contrast checks. The combined suite contains **85 JUnit test methods** as of Task 6.
+The test suite covers data parsing, reference checking, numeric validation, hashing and collisions, linked-list ordering, AVL rotations and duplicate keys, sorting correctness, heap ordering, search filters, recommendation scoring, comparable valuation, algorithm comparison, and all eight CLI options in one scripted session. Tasks 5–6 add table-model tests, bounded input tests, headless Swing panel interactions, reset/empty-result cases, exact ID lookup, recommendation and valuation UI, and button contrast checks. The combined suite contains **96 JUnit test methods**: 85 previous checks plus 11 new recency, date-display and large-dataset integration tests. Run `mvn clean test` to execute them through Maven on your machine. The integration tests intentionally assume the committed 1,500-property dataset is present in `data/`.
 
 Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit tests. Do not treat a compilation-only run or `-DskipTests` as a completed validation. The CLI can also be exercised manually using `mvn exec:java`.
 
@@ -183,7 +185,7 @@ Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit t
 
 - Data is synthetic and read-only; no live market feed or persistence of edits.
 - Recommendations use a fixed scoring formula rather than learned personal preferences.
-- Comparable valuation averages a small set of related past sales; it does not estimate uncertainty or market dynamics.
+- Comparable valuation averages up to five recent, same-type recorded sales without time adjustments; it does not estimate market dynamics, current prices, or uncertainty.
 - Benchmark readings are illustrative micro-timings. Production performance investigation would use larger controlled datasets and JMH.
 - The desktop interface is read-only and targets regular desktop window sizes (tested at 1000×650 and larger); it is not designed for mobile screens.
 
@@ -195,4 +197,5 @@ Run `mvn clean test`; Maven Surefire prints the exact number of executed JUnit t
 - [x] Task 4 — Complete CLI, validation, integration tests, algorithm comparison
 - [x] Task 5 — Swing dashboard, search and sale history
 - [x] Task 6 — Swing recommendations, valuation, algorithm comparison and readable button styling
+- [x] Pre-documentation checkpoint — recent comparable sales, sale-date transparency, final-dataset tests
 - [ ] Task 7 — Final technical documentation, screenshots and report

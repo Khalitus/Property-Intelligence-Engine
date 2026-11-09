@@ -81,3 +81,7 @@ The generator is not used by the Java application at runtime; the Java applicati
 ## Limitations
 
 These values are fictional and partly determined by chosen simulation formulas. They can demonstrate code behavior, algorithmic differences, index balancing, and recommendation/valuation **logic**, but they cannot validate real-world accuracy or support factual market conclusions. Benchmark times are environment-dependent, not guaranteed speedups.
+
+## Application valuation policy (pre-documentation checkpoint)
+
+The Java valuation service uses only same-type comparables whose **latest** sale is on or after the inclusive cutoff three years before the newest sale anywhere in these CSVs. For this dataset, the newest sale is **2026-10-27**, giving a cutoff of **2023-10-27**. Fewer than the requested number of comparables may be returned. Historic sales older than the cutoff remain accessible from the Sale History view. Recorded sale dates appear with prices in the desktop tables and CLI. No inflation or time adjustment is applied.
