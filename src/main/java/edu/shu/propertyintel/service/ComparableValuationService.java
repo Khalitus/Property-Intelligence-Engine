@@ -10,17 +10,37 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.time.LocalDate;
 
-/** Estimates a property's value from the latest sales of the most similar same-type properties. */
+/** Estimates a property value from recent, same-type recorded sales.
+ * The three-year window is anchored to the latest sale in the loaded dataset.
+ */
 public final class ComparableValuationService {
     private static final Comparator<ComparableProperty> MOST_SIMILAR =
             Comparator.comparingDouble(ComparableProperty::similarity)
                     .thenComparing(result -> result.property().id(), Comparator.reverseOrder());
 
+    private static final int RECENT_SALE_YEARS = 3;
+
     private final PropertyStore store;
 
     public ComparableValuationService(PropertyStore store) {
         this.store = Objects.requireNonNull(store, "store");
+    }
+
+    public Optional<LocalDate> latestDatasetSaleDate() {
+        LocalDate latest = null;
+        for (Property property : store.allProperties()) {
+            Sale sale = store.latestSaleFor(property.id());
+            if (sale != null && (latest == null || sale.date().isAfter(latest))) {
+                latest = sale.date();
+            }
+        }
+        return Optional.ofNullable(latest);
+    }
+
+    public Optional<LocalDate> earliestComparableSaleDate() {
+        return latestDatasetSaleDate().map(date -> date.minusYears(RECENT_SALE_YEARS));
     }
 
     public Optional<ValuationResult> estimate(String propertyId, int comparableCount) {
@@ -34,13 +54,18 @@ public final class ComparableValuationService {
         if (subject == null) {
             throw new IllegalArgumentException("Property not found: " + propertyId);
         }
+        LocalDate cutoff = earliestComparableSaleDate().orElse(null);
+        if (cutoff == null) {
+            return Optional.empty();
+        }
         MaxHeap<ComparableProperty> heap = new MaxHeap<>(MOST_SIMILAR);
         for (Property candidate : store.allProperties()) {
             if (candidate.id().equals(subject.id()) || !candidate.type().equalsIgnoreCase(subject.type())) {
                 continue;
             }
             Sale latest = store.latestSaleFor(candidate.id());
-            if (latest == null || !Double.isFinite(latest.price()) || latest.price() <= 0) {
+            if (latest == null || latest.date().isBefore(cutoff)
+                    || !Double.isFinite(latest.price()) || latest.price() <= 0) {
                 continue;
             }
             double distance = difference(subject, candidate);

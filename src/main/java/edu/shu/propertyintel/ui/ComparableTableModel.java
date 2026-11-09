@@ -10,7 +10,7 @@ import java.util.Locale;
 
 public final class ComparableTableModel extends AbstractTableModel {
     private static final String[] COLUMNS = {
-            "Property ID", "Neighborhood", "Bedrooms", "Area (m²)", "Latest sale", "Match index"
+            "Property ID", "Neighborhood", "Bedrooms", "Area (m²)", "Sale price", "Match index", "Sale date"
     };
     private final PropertyStore store;
     private List<ComparableProperty> comparables = List.of();
@@ -38,6 +38,7 @@ public final class ComparableTableModel extends AbstractTableModel {
             case 3 -> String.format(Locale.US, "%.1f", comparable.property().areaSqm());
             case 4 -> String.format(Locale.US, "%,.2f", comparable.latestPrice());
             case 5 -> String.format(Locale.US, "%.3f", comparable.similarity());
+            case 6 -> store.latestSaleFor(comparable.property().id()).date().toString();
             default -> "";
         };
     }

@@ -10,7 +10,7 @@ import java.util.Locale;
 
 public final class RecommendationTableModel extends AbstractTableModel {
     private static final String[] COLUMNS = {
-            "Property ID", "Type", "Neighborhood", "Beds", "Area (m²)", "Sale price", "Score / 100"
+            "Property ID", "Type", "Neighborhood", "Beds", "Area (m²)", "Sale price", "Score / 100", "Sale date"
     };
     private final PropertyStore store;
     private List<PropertyRecommendation> recommendations = List.of();
@@ -45,6 +45,7 @@ public final class RecommendationTableModel extends AbstractTableModel {
             case 4 -> String.format(Locale.US, "%.1f", result.property().areaSqm());
             case 5 -> String.format(Locale.US, "%,.2f", result.price());
             case 6 -> String.format(Locale.US, "%.1f", result.score());
+            case 7 -> store.latestSaleFor(result.property().id()).date().toString();
             default -> "";
         };
     }

@@ -51,7 +51,7 @@ public final class ValuationPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(0, 4));
         header.setOpaque(false);
         header.add(UiTheme.heading("Comparable-property valuation"), BorderLayout.NORTH);
-        header.add(UiTheme.muted("Estimate an illustrative value from similar properties' most recent recorded sales."), BorderLayout.SOUTH);
+        header.add(UiTheme.muted("Estimate from recent same-type sales; older transactions are excluded."), BorderLayout.SOUTH);
         JPanel top = new JPanel(new BorderLayout(0, 15));
         top.setOpaque(false);
         top.add(header, BorderLayout.NORTH);
@@ -71,7 +71,8 @@ public final class ValuationPanel extends JPanel {
         JTable table = new JTable(model);
         table.setName("valuation.results");
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        int[] widths = {100, 130, 100, 105, 135, 110};
+        table.getColumnModel().moveColumn(6, 5);
+        int[] widths = {92, 124, 84, 88, 120, 105, 88};
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
@@ -84,10 +85,15 @@ public final class ValuationPanel extends JPanel {
         resultsPanel.add(status, BorderLayout.SOUTH);
         content.add(resultsPanel, BorderLayout.CENTER);
 
-        JTextArea note = new JTextArea("Method: filter out the subject property and other property types; "
-                + "rank remaining sold properties by bedroom, area, bathroom, parking and neighborhood differences; "
-                + "average the top comparable sale prices. The match index ranges from 0 to 1 but is not a confidence probability. "
-                + "Prices are synthetic dataset units, not an official appraisal.");
+        String earliest = service.earliestComparableSaleDate()
+                .map(Object::toString).orElse("not available");
+        String latest = service.latestDatasetSaleDate()
+                .map(Object::toString).orElse("not available");
+        JTextArea note = new JTextArea("Method: select recorded sales on or after " + earliest
+                + " (three years before the dataset's latest sale, " + latest + "). "
+                + "Exclude the subject and other property types; rank by bedroom, area, bathroom, parking and neighborhood differences; "
+                + "average up to the requested number of comparables. Older sales are excluded, even when fewer matches remain. "
+                + "These synthetic, unadjusted sale prices are not a current-market appraisal. The match index is not a confidence probability.");
         note.setLineWrap(true);
         note.setWrapStyleWord(true);
         note.setEditable(false);
@@ -151,9 +157,9 @@ public final class ValuationPanel extends JPanel {
             if (result.isEmpty()) {
                 model.setComparables(java.util.List.of());
                 estimate.setText("No comparables available");
-                resultInfo.setText("No other sold properties of the same type were found.");
+                resultInfo.setText("No recent same-type comparable sales were found.");
                 status.setForeground(UiTheme.MUTED);
-                status.setText("Try another property ID.");
+                status.setText("Try another property ID; historical sales outside the three-year window are excluded.");
                 return;
             }
             ValuationResult value = result.get();
@@ -163,9 +169,13 @@ public final class ValuationPanel extends JPanel {
             estimate.setText(String.format(Locale.US, "%,.2f", value.estimatedPrice()));
             resultInfo.setText(property.id() + " · " + property.type() + " · "
                     + (place == null ? property.neighborhoodId() : place.name())
-                    + " · Based on " + value.comparables().size() + " comparable sale(s)");
+                    + " · " + value.comparables().size() + "/" + count + " recent comparable(s)");
             status.setForeground(UiTheme.MUTED);
-            status.setText("Values are simple averages of the displayed sale prices; click Clear to reset.");
+            if (value.comparables().size() < count) {
+                status.setText("Only " + value.comparables().size() + " recent comparable(s) available; older sales were not used.");
+            } else {
+                status.setText("Unadjusted average of the displayed recent sale prices. Clear resets the form.");
+            }
         } catch (IllegalArgumentException | ParseException exception) {
             status.setForeground(UiTheme.ERROR);
             status.setText("Unable to estimate: " + exception.getMessage() + " Previous results are unchanged.");

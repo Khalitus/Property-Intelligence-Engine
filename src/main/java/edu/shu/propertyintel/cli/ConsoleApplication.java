@@ -266,15 +266,17 @@ public final class ConsoleApplication {
                 return;
             }
             output.println("TOP RECOMMENDATIONS (out of 100; higher scores rank first)");
-            output.printf("%-8s %-12s %-14s %12s %8s%n",
-                    "ID", "TYPE", "NEIGHBORHOOD", "PRICE", "SCORE");
+            output.printf("%-8s %-12s %-14s %12s %-12s %8s%n",
+                    "ID", "TYPE", "NEIGHBORHOOD", "SALE PRICE", "SALE DATE", "SCORE");
             for (PropertyRecommendation result : results) {
                 Property property = result.property();
                 Neighborhood location = store.findNeighborhood(property.neighborhoodId());
-                output.printf(Locale.US, "%-8s %-12s %-14s %,12.0f %8.1f%n",
-                        property.id(), property.type(), location.name(), result.price(), result.score());
+                output.printf(Locale.US, "%-8s %-12s %-14s %,12.0f %-12s %8.1f%n",
+                        property.id(), property.type(), location.name(), result.price(),
+                        store.latestSaleFor(property.id()).date(), result.score());
             }
             output.println("Score considers affordability, school, safety, transit, area, and parking.");
+            output.println("Prices are historical synthetic sale records, not current listings.");
         } catch (IllegalArgumentException exception) {
             output.println("Invalid recommendation input: " + exception.getMessage());
         }
@@ -287,18 +289,24 @@ public final class ConsoleApplication {
         }
         try {
             java.util.Optional<ValuationResult> estimate = valuationService.estimate(id, 3);
+            String cutoff = valuationService.earliestComparableSaleDate()
+                    .map(Object::toString).orElse("not available");
             if (estimate.isEmpty()) {
-                output.println("No suitable same-type properties with sale prices are available.");
+                output.println("No recent same-type comparable sales are available (cutoff: " + cutoff + ").");
                 return;
             }
             ValuationResult result = estimate.get();
             output.printf(Locale.US, "Estimated value of %s: %,.2f%n",
                     result.property().id(), result.estimatedPrice());
-            output.printf("Based on %d comparable property sale(s):%n", result.comparables().size());
+            output.printf("Based on %d of 3 requested recent comparable sale(s), dated %s or later:%n",
+                    result.comparables().size(), cutoff);
             for (ComparableProperty comparable : result.comparables()) {
-                output.printf(Locale.US, "%-8s %12s %,.2f  relative match %.3f%n",
-                        comparable.property().id(), comparable.property().type(),
-                        comparable.latestPrice(), comparable.similarity());
+                output.printf(Locale.US, "%-8s %12s %,.2f on %s  relative match %.3f%n",
+                        comparable.property().id(), comparable.property().type(), comparable.latestPrice(),
+                        store.latestSaleFor(comparable.property().id()).date(), comparable.similarity());
+            }
+            if (result.comparables().size() < 3) {
+                output.println("Fewer than three recent comparable sales exist; older sales were excluded.");
             }
             output.println("Relative match is a 0-1 comparison index, not a confidence probability.");
             output.println("Illustrative estimate based on recorded sales, not an official appraisal.");

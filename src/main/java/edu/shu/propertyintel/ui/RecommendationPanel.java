@@ -77,7 +77,7 @@ public final class RecommendationPanel extends JPanel {
         JPanel heading = new JPanel(new BorderLayout(0, 4));
         heading.setOpaque(false);
         heading.add(UiTheme.heading("Property recommendations"), BorderLayout.NORTH);
-        heading.add(UiTheme.muted("Set a budget and optional preferences. The top five eligible properties are ranked using our Max Heap."), BorderLayout.SOUTH);
+        heading.add(UiTheme.muted("Filter historical property records and rank up to five matches using our Max Heap."), BorderLayout.SOUTH);
         top.add(heading, BorderLayout.NORTH);
         top.add(buildForm(), BorderLayout.CENTER);
         add(top, BorderLayout.NORTH);
@@ -86,7 +86,7 @@ public final class RecommendationPanel extends JPanel {
         results.setName("recommend.results");
         results.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         results.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        int[] widths = {95, 95, 112, 62, 88, 116, 95};
+        int[] widths = {95, 95, 112, 62, 88, 116, 95, 104};
         for (int i = 0; i < widths.length; i++) {
             results.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
@@ -250,11 +250,12 @@ public final class RecommendationPanel extends JPanel {
         PropertyRecommendation item = model.recommendationAt(results.convertRowIndexToModel(selected));
         Neighborhood place = store.findNeighborhood(item.property().neighborhoodId());
         explanation.setText(String.format(Locale.US,
-                "%s — %s%n%s%n%nLatest recorded sale: %,.2f%nScore: %.1f / 100%nBedrooms: %d%nArea: %.1f m²%nParking: %d space(s)%n%n"
+                "%s — %s%n%s%n%nRecorded sale: %,.2f on %s%nScore: %.1f / 100%nBedrooms: %d%nArea: %.1f m²%nParking: %d space(s)%n%n"
                 + "Scoring weights:%nAffordability 25, schools 20, safety 20, transit 10, area 15, parking 10.%n%n"
-                + "Only properties within your hard limits are ranked. This is a transparent rule-based score, not machine learning.",
+                + "Only properties within your hard limits are ranked. These are historical transactions, not active listings. This is a rule-based score, not machine learning.",
                 item.property().id(), item.property().type(), place == null ? "Unknown" : place.name(),
-                item.price(), item.score(), item.property().bedrooms(), item.property().areaSqm(), item.property().parkingSpaces()));
+                item.price(), store.latestSaleFor(item.property().id()).date(), item.score(),
+                item.property().bedrooms(), item.property().areaSqm(), item.property().parkingSpaces()));
         explanation.setCaretPosition(0);
     }
 
